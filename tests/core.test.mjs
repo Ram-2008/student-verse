@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {initialState,metrics,recommend,courses,problems,tasks,validSubmission} from '../data.js';
+test('fresh demo has truthful zero progress and four pending tasks',()=>{assert.deepEqual(metrics(initialState()),{completed:0,total:9,solved:0,pending:4});});
+test('progress and task counts follow actual saved actions',()=>{const s=initialState();s.completed.push('python-0');s.solved.push('sum');s.submissions.intro={answer:'A useful learning introduction'};assert.deepEqual(metrics(s),{completed:1,total:9,solved:1,pending:3});assert.deepEqual(JSON.parse(JSON.stringify(s)),s);});
+test('career ordering changes with student interests',()=>{const s=initialState();assert.equal(recommend(s.profile)[0].id,'btech');s.profile.interests=['Design'];assert.equal(recommend(s.profile)[0].id,'design');});
+test('empty interests do not produce invented affinity',()=>{const s=initialState();s.profile.interests=[];assert.ok(recommend(s.profile).every(c=>c.score<=1));});
+test('assignment validation rejects unsafe URL protocols and empty work',()=>{assert.equal(validSubmission(tasks[3],'javascript:alert(1)'),false);assert.equal(validSubmission(tasks[3],'http://example.com'),false);assert.equal(validSubmission(tasks[3],'https://example.com/project'),true);assert.equal(validSubmission(tasks[0],'   '),false);assert.equal(validSubmission(tasks[0],'I want to learn Python and explore computing.'),true);});
+test('lesson quizzes and problem definitions are internally valid',()=>{const ids=new Set();for(const c of courses){for(const l of c.lessons){assert.ok(l.body.length>100);assert.ok(l.answer>=0&&l.answer<l.options.length);}assert.ok(!ids.has(c.id));ids.add(c.id);}assert.equal(problems.length,5);for(const p of problems){assert.ok(p.starter.includes('def '+p.fn));assert.ok(p.tests.length>=4);}});
